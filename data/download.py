@@ -16,7 +16,8 @@ universe = [
     "SPY", "QQQ", "IWM", # market
     "AGG", "TLT", "LQD", "TIP",  # bonds
     "GLD", "SLV", "CPER", "DBB",  # precious metals
-    "XLK", "XLV", "XLF", "XLY", "XLI", "XLP", "XLE", "XLU", "XLB", "IBB", "IYR",  # sectors
+    "XLK", "XLV", "XLF", "XLY", "XLI", "XLP", "XLE", "XLU", "XLB", # sectors
+    "IBB", "IYR",  # Extra
     "EWJ", "EWG", "EWU", "EWA", "EWH", "EWS", "EWZ", "EWT", "EWY", "EWP", "EWW", "EWD", "EWL", "EWC",  # international "EEM", 
     "DBC", "DBA", "CORN", "SOYB", "USO", "WEAT", "CANE",  # commodities COTN.L
     "BTC-USD",  # crypto

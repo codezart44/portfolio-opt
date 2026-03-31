@@ -5,7 +5,8 @@ Portfolio Optimization project, conducted at Stanford University under supervisi
 - Nikhil Devanathan
 - Alexandros Tzikizz
 - Daniel Cederberg
-- Max
+- Maximilian Schaller
+
 The goal of this project is to identify and formulate simple methods for portfolio constructions that yields long-term decent and consistent returns. The project employs methods of: volatility control through Markowitz and volatility scaling, alpha generation through return prediction and asset ranking, strategies and meta strategies. 
 
 ### Data

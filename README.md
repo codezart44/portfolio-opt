@@ -1,7 +1,7 @@
 ## Portfolio Optimization
 
 ### Description
-Portfolio Optimization project, conducted at Stanford University under supervision of Prof. Stephen P. Boyd and research members:
+Portfolio Optimization project, conducted at Stanford University together with Alexander E. Karolin and under supervision of Prof. Stephen P. Boyd and research members:
 - Nikhil Devanathan
 - Alexandros Tzikas
 - Daniel Cederberg

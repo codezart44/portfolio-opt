@@ -1,0 +1,16 @@
+FIRST_DATE     = "1954-01-03"  # first date
+FINAL_DATE     = "2026-03-25"  # final date
+FIRST_DATE_BTC = "2017-09-07"  # according to Kasper's paper
+AUTO_ADJUST = true
+
+# "IS3S.DE"
+universe = [
+    "SPY", "QQQ", "IWM", # market
+    "AGG", "TLT", "LQD", "TIP",  # bonds
+    "GLD", "SLV", "CPER", "DBB",  # precious metals
+    "XLK", "XLV", "XLF", "XLY", "XLI", "XLP", "XLE", "XLU", "XLB", # sectors
+    "IBB", "IYR",  # Extra
+    "EWJ", "EWG", "EWU", "EWA", "EWH", "EWS", "EWZ", "EWT", "EWY", "EWP", "EWW", "EWD", "EWL", "EWC",  # international "EEM", 
+    "DBC", "DBA", "CORN", "SOYB", "USO", "WEAT", "CANE",  # commodities COTN.L
+    "BTC-USD",  # crypto
+]

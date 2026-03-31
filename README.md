@@ -3,7 +3,7 @@
 ### Description
 Portfolio Optimization project, conducted at Stanford University under supervision of Prof. Stephen P. Boyd and research members:
 - Nikhil Devanathan
-- Alexandros Tzikizz
+- Alexandros Tzikas
 - Daniel Cederberg
 - Maximilian Schaller
 
@@ -20,10 +20,13 @@ Results found from this study do not gurantee future financial sucess, however p
 python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
+pip install -e .
 ``` 
-Create a new `env.sh` file where you export your FRED API key to the environment.
+Create a new `scripts/env.sh` file where you export your FRED API key to the environment. You can order a FRED API key from [here](https://fred.stlouisfed.org/docs/api/api_key.html).
 ```zsh
 export FRED_API_KEY="your_key_here"
-python data/download.py  # this requires your FRED API key to be set, see 'env'
 ``` 
-You can order a FRED API key from [here](https://fred.stlouisfed.org/docs/api/api_key.html).
+Then download data and process risk with the setup command.
+```zsh
+source setup.sh  # this requires your FRED API key to be set, see 'env'
+```

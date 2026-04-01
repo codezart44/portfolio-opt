@@ -3,46 +3,6 @@ import pandas as pd
 from scipy import linalg
 from typing import Literal, Sequence
 
-
-def preprocess_alpha_data(
-        data_ret: pd.DataFrame,
-        data_mac: pd.DataFrame,
-        assets: list[str],
-        features_ret: list[str],
-        features_mac: list[str],
-        target: str,
-    ) -> tuple[pd.DataFrame, list[str]]:
-    data_ret: pd.DataFrame = data_ret.loc[:, pd.IndexSlice[assets, features_ret+[target]]].copy()  # filter by selection
-    has_nans = ~data_ret.isna().any(axis=0).groupby(level=0).any()
-    assets_remaining = has_nans.index[has_nans]
-    data_ret = data_ret[assets_remaining]  # filter away etfs with features containing nans
-    assert data_ret.isna().any().any() == False
-
-    data_mac = data_mac.reindex(data_ret.index)
-    assert data_mac.isna().any().any() == False
-    md_bc = pd.concat(objs=[data_mac[features_mac]]*len(assets_remaining), keys=assets_remaining, axis=1)
-    assert md_bc.isna().any().any() == False
-
-    const = pd.DataFrame(1.0, columns=pd.MultiIndex.from_product([assets_remaining, ["Const"]]), index=data_ret.index)
-    data = pd.concat([const, data_ret, md_bc], axis=1)[assets_remaining]
-    assert data.isna().any().any() == False
-
-    return data, assets_remaining
-
-def xy_split(
-        data: pd.DataFrame,
-        target: str,
-        features_ret: list[str],
-        horizon: int,
-    ) -> tuple[pd.DataFrame, pd.DataFrame]:
-    assert data.isna().any().any() == False
-    ydata = data.xs(target, axis=1, level=1).shift(-horizon).dropna().copy()   # For T1M at position t : t+1, ... , t+21
-    to_drop = [target] if target not in features_ret else []
-    xdata = data.drop(columns=to_drop, level=1).reindex(ydata.index).copy()    # For T1M at position t : t-20, ... , t
-    assert xdata.shape[0] == ydata.shape[0], (xdata.shape, ydata.shape)
-    return xdata, ydata
-
-
 def train_shared(
         X_trn: np.ndarray,
         y_trn: np.ndarray,
@@ -210,3 +170,41 @@ def laplacian_graph(
 
     return L_graph
 
+
+# def preprocess_alpha_data(
+#         data_ret: pd.DataFrame,
+#         data_mac: pd.DataFrame,
+#         assets: list[str],
+#         features_ret: list[str],
+#         features_mac: list[str],
+#         target: str,
+#     ) -> tuple[pd.DataFrame, list[str]]:
+#     data_ret: pd.DataFrame = data_ret.loc[:, pd.IndexSlice[assets, features_ret+[target]]].copy()  # filter by selection
+#     has_nans = ~data_ret.isna().any(axis=0).groupby(level=0).any()
+#     assets_remaining = has_nans.index[has_nans]
+#     data_ret = data_ret[assets_remaining]  # filter away etfs with features containing nans
+#     assert data_ret.isna().any().any() == False
+
+#     data_mac = data_mac.reindex(data_ret.index)
+#     assert data_mac.isna().any().any() == False
+#     md_bc = pd.concat(objs=[data_mac[features_mac]]*len(assets_remaining), keys=assets_remaining, axis=1)
+#     assert md_bc.isna().any().any() == False
+
+#     const = pd.DataFrame(1.0, columns=pd.MultiIndex.from_product([assets_remaining, ["Const"]]), index=data_ret.index)
+#     data = pd.concat([const, data_ret, md_bc], axis=1)[assets_remaining]
+#     assert data.isna().any().any() == False
+
+#     return data, assets_remaining
+
+# def xy_split(
+#         data: pd.DataFrame,
+#         target: str,
+#         features_ret: list[str],
+#         horizon: int,
+#     ) -> tuple[pd.DataFrame, pd.DataFrame]:
+#     assert data.isna().any().any() == False
+#     ydata = data.xs(target, axis=1, level=1).shift(-horizon).dropna().copy()   # For T1M at position t : t+1, ... , t+21
+#     to_drop = [target] if target not in features_ret else []
+#     xdata = data.drop(columns=to_drop, level=1).reindex(ydata.index).copy()    # For T1M at position t : t-20, ... , t
+#     assert xdata.shape[0] == ydata.shape[0], (xdata.shape, ydata.shape)
+#     return xdata, ydata

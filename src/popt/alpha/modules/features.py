@@ -99,9 +99,9 @@ class FeatureBuilder:
         self.factors = factors
 
         self.F: int = None
-        self.features:   np.ndarray = None
-        self.__features: list[np.ndarray] = []
-        self.names: list[str] = []
+        self.x:   np.ndarray = None
+        self.__x: list[np.ndarray] = []
+        self.features: list[str] = []
         self.lookbacks: list[int] = []
         self.callbacks: list[Callable[..., np.ndarray]] = []
         self.regressed: list[bool] = []
@@ -116,82 +116,105 @@ class FeatureBuilder:
             callback: Callable[..., np.ndarray],
         ) -> None:
         assert lookback > 0, lookback
-        assert name not in self.names
+        assert name not in self.features
         assert (lookback, callback) not in zip(self.lookbacks, self.callbacks)
 
         rr_ = self.rr if regress == False else self.ee
-        feature = rolling_feature(rr_, lookback, callback)
-        feature = feature if z_scale == False else standard_scale(feature)
+        x = rolling_feature(rr_, lookback, callback)
+        x = x if z_scale == False else standard_scale(x)
 
-        self.__features.append(feature)
-        self.names.append(name)
+        self.__x.append(x)
+        self.features.append(name)
         self.lookbacks.append(lookback)
         self.callbacks.append(callback)
         self.regressed.append(regress)
         self.z_scaled.append(z_scale)
     
     def consolidate(self) -> None:
-        features = np.stack(self.__features, axis=2)
-        T, U, F = self.T, self.U, len(self.__features)
-        assert features.shape == (T, U, F)
-        assert len(self.names) == F
+        x = np.stack(self.__x, axis=2)
+        T, U, F = self.T, self.U, len(self.__x)
+        assert x.shape == (T, U, F)
+        assert len(self.features) == F
         assert len(self.lookbacks) == F
         assert len(self.callbacks) == F
         assert len(self.regressed) == F
         assert len(self.z_scaled) == F
         self.F = F
-        self.features = features
+        self.x = x
 
 class FeatureView:
     def __init__(
             self,
             fb: FeatureBuilder,
+            target: str,
             subset: list[str] = None,
         ):
         assert fb.F is not None
-        assert fb.features is not None
+        assert fb.x is not None
+        assert target in fb.features
         subset = subset if subset is not None else fb.tickers
         assert np.isin(subset, fb.tickers).all()
-        T, _, F = fb.features.shape
+        T, _, F = fb.x.shape
         N = len(subset)
         t2i = {t: i for i, t in enumerate(fb.tickers)}
         i_N = np.array([t2i[t] for t in subset], dtype=int)
+        i_tgt = fb.features.index(target)
         self.T = T
         self.N = N
         self.F = F
-        self.names = fb.names.copy()
+        self.timeline = fb.timeline.copy()
         self.tickers = subset
-        self.__features = fb.features[:, i_N, :]
-        self.features = self.__features.copy()
+        self.target = target
+        self.horizon = fb.lookbacks[i_tgt]
+        self.features = fb.features.copy()
+        self.y = fb.x[:, :, i_tgt]
+        self.__x = fb.x[:, i_N, :]
+        self.x = self.__x.copy()
         self.__mask = np.full((self.N, self.F), fill_value=False, dtype=bool)
         self.mask = self.__mask.copy()
 
     def apply_masking(self) -> None:       
         mask = self.mask[None, :, :].repeat(self.T, axis=0)  # [T, N, F]
         
-        features = self.__features.copy()
-        features[mask] = np.nan
-        self.features = features
+        x = self.__x.copy()
+        x[mask] = np.nan
+        self.x = x
 
         self.mask = self.__mask.copy()
 
     # for given tickers:
-    # exclude=True:  excludes choosen feature_names, includes rest
-    # exclude=False: includes choosen feature_names, excludes rest
+    # exclude=True:  excludes choosen features, includes rest
+    # exclude=False: includes choosen features, excludes rest
     def add_mask(
             self,
             tickers: list[str],
-            names: list[str],
+            features: list[str],
             exclude=True
         ) -> None:
         assert np.isin(tickers, self.tickers).all()
-        assert np.isin(names, self.names).all()
+        assert np.isin(features, self.features).all()
 
         mask_tick = np.isin(self.tickers, tickers)
-        mask_name = np.isin(self.names, names)
+        mask_name = np.isin(self.features, features)
         
         mask = mask_tick[:,None] & mask_name[None,:]  # [N, F]
         if exclude == False:  # include, only selected tickers
             mask[mask_tick, :] = ~mask[mask_tick, :]
 
         self.mask |= mask
+
+    def get_x(self, t: int, lookback: int) -> np.ndarray:
+        assert lookback >= 1
+        assert lookback <= t
+        assert t <= self.T-1
+        t0 = t+1-lookback
+        t1 = t+1
+        return self.x[ t0:t1 , : , : ]  # [L, N, F]
+    
+    def get_y(self, t: int, lookback: int) -> np.ndarray:
+        assert lookback >= 1
+        assert lookback <= t
+        assert t <= self.T-1
+        t0 = t+1-lookback
+        t1 = t+1
+        return self.y[ t0:t1 , : ]      # [L, N]

@@ -1,5 +1,9 @@
 ## Portfolio Optimization
 
+![custom label](https://img.shields.io/badge/portfolio_optimization-gray)
+![custom label](https://img.shields.io/badge/portfolio_opt-gray)
+![custom label](https://img.shields.io/badge/popt-gray)
+
 ### Description
 Portfolio Optimization project, conducted at Stanford University under supervision of [Prof. Stephen P. Boyd](https://stanford.edu/~boyd/) and research members:
 - [Nikhil Devanathan](https://ndevanathan.github.io/)

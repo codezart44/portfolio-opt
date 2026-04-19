@@ -2,10 +2,14 @@ import numpy as np
 import pandas as pd
 from typing import Callable
 
+
 def standard_scale(x: np.ndarray, axis=1) -> np.ndarray:
     numer = x - x.mean(axis=axis, keepdims=True)
     denom = x.std(axis=axis, keepdims=True) + 1e-8
     return numer / denom
+
+# def constant(r: np.ndarray) -> np.ndarray:
+#     return np.ones(r.shape[1], dtype=int)
 
 def momentum(r: np.ndarray) -> np.ndarray:
     return (1.0 + r).prod(axis=0) - 1.0
@@ -15,6 +19,9 @@ def drawdown(r: np.ndarray) -> np.ndarray:
     r_max = np.maximum.accumulate(r_cum, axis=0)
     dd = 1.0 - r_cum / (r_max + 1e-8)
     return dd.max(axis=0)
+
+def momentum_vs(r: np.ndarray) -> np.ndarray:
+    return momentum(r) / (volatility(r) * np.sqrt(r.shape[0]) + 1e-8)
 
 def volatility(r: np.ndarray) -> np.ndarray:
     return r.std(axis=0, ddof=1)
@@ -30,7 +37,16 @@ def sharpe_like(r: np.ndarray) -> np.ndarray:
     return mean_geom(r) / (volatility(r) + 1e-8)
 
 def skewness(r: np.ndarray) -> np.ndarray:
-    return ((r - mean_geom(r))**3).mean(axis=0) / (volatility(r) + 1e-8)**3
+    u = r.mean(axis=0)
+    s = r.std(axis=0, ddof=0)
+    return np.mean((r - u)**3, axis=0) / (s + 1e-8)**3
+    # return ((r - mean_geom(r))**3).mean(axis=0) / (volatility(r) + 1e-8)**3
+
+def kurtosis(r: np.ndarray) -> np.ndarray:
+    u = r.mean(axis=0)
+    s = r.std(axis=0, ddof=0)
+    return np.mean((r - u)**4, axis=0) / (s + 1e-8)**4
+    # return ((r - mean_geom(r))**4).mean(axis=0) / (volatility(r) + 1e-8)**4
 
 def idiosyncratic_returns(
         rr: np.ndarray,  # assets
@@ -152,23 +168,22 @@ class FeatureView:
         assert fb.F is not None
         assert fb.x is not None
         assert target in fb.features
-        subset = subset if subset is not None else fb.tickers
-        assert np.isin(subset, fb.tickers).all()
-        T, _, F = fb.x.shape
-        N = len(subset)
-        t2i = {t: i for i, t in enumerate(fb.tickers)}
-        i_N = np.array([t2i[t] for t in subset], dtype=int)
+        subset = subset if subset is not None else fb.features
+        assert np.isin(subset, fb.features).all()
+        T, N, _ = fb.x.shape
+        F = len(subset)
+        i_F = np.array([fb.features.index(f) for f in subset], dtype=int)
         i_tgt = fb.features.index(target)
         self.T = T
         self.N = N
         self.F = F
         self.timeline = fb.timeline.copy()
-        self.tickers = subset
+        self.tickers = fb.tickers.copy()
         self.target = target
         self.horizon = fb.lookbacks[i_tgt]
-        self.features = fb.features.copy()
+        self.features = subset
         self.y = fb.x[:, :, i_tgt]
-        self.__x = fb.x[:, i_N, :]
+        self.__x = fb.x[:, :, i_F]
         self.x = self.__x.copy()
         self.__mask = np.full((self.N, self.F), fill_value=False, dtype=bool)
         self.mask = self.__mask.copy()

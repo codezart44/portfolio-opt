@@ -2,8 +2,9 @@ import numpy as np
 import pandas as pd
 import time
 from typing import Literal
-from .predictor import AlphaPredictor
-from .features import FeatureView
+from popt.alpha.modules.predictor import AlphaPredictor
+from popt.alpha.modules.features import FeatureView
+from popt.alpha.modules.utils import ic_score
 
 class AlphaSimulator:
     def __init__(self, fv: FeatureView):
@@ -14,7 +15,7 @@ class AlphaSimulator:
         self.predictor: AlphaPredictor | None = None
         self.time = -1
 
-    def run(self, predictor: AlphaPredictor, verbose=False):
+    def run(self, predictor: AlphaPredictor, verbose=False, permute=False):
         t0 = time.time()
         fv = self.fv
         h = fv.horizon
@@ -28,6 +29,10 @@ class AlphaSimulator:
             y_trn = fv.get_y(t  , L)       # [ t+1  -l : t+1   ]
             x_tst = fv.get_x(t  , 1)       # [ t       : t+1   ]
             y_tst = fv.get_y(t+h, 1)       # [ t  +h   : t+1+h ]
+
+            if permute == True:
+                index = np.argsort(np.random.rand(*y_trn.shape), axis=1)
+                y_trn = np.take_along_axis(y_trn, index, axis=1)
 
             if np.isnan(x_trn).all(axis=2).any(): continue
             if np.isnan(x_tst).all(axis=2).any(): continue
@@ -46,6 +51,18 @@ class AlphaSimulator:
         self.ref = gtruth
         self.time = time.time() - t0
         if verbose == True: print_simulator_results(self)
+
+    def get_alpha(self, universe: list[str]) -> pd.DataFrame:
+        tickers = self.fv.tickers
+        timeline = self.fv.timeline
+        T = timeline.shape[0]
+        U = len(universe)
+        i_N = np.array([universe.index(t) for t in tickers], dtype=int)
+        alpha = np.full((T, U), fill_value=np.nan, dtype=float)
+        alpha[:,i_N] = self.prd
+        alpha = pd.DataFrame(data=alpha, columns=universe, index=timeline)
+        alpha = alpha.fillna(1.0)
+        return alpha
 
     @property
     def ic_spearman(self) -> np.ndarray:
@@ -67,34 +84,3 @@ def print_simulator_results(sim: AlphaSimulator) -> None:
     print(f"Backtest Runtime: {round(sim.time*1000)} ms")
     print(f"ic sprm:    {np.nanmean(sim.ic_spearman).round(4)}")
     print(f"ic prsn:    {np.nanmean(sim.ic_pearson).round(4)}")
-
-
-
-def rank(y: np.ndarray, axis=1) -> np.ndarray:
-    return np.argsort(np.argsort(y, axis=axis), axis=axis)
-
-def ic_score(
-        a1: np.ndarray, 
-        a2: np.ndarray, 
-        method: Literal["spearman", "pearson"] = "spearman"
-    ) -> np.ndarray:
-    assert a1.shape == a2.shape
-    T = a1.shape[0]
-    ic = np.full((T,), fill_value=np.nan, dtype=float)
-    notna = ~np.isnan(a1).any(axis=1) & ~np.isnan(a2).any(axis=1)
-    match method:
-        case "spearman":
-            a1_ = rank(a1[notna])
-            a2_ = rank(a2[notna])
-        case "pearson":
-            a1_ = a1[notna]
-            a2_ = a2[notna]
-        case _:
-            raise ValueError
-    a1_ = a1_ - a1_.mean(axis=1, keepdims=True)
-    a2_ = a2_ - a2_.mean(axis=1, keepdims=True)
-    
-    cov = (a1_ * a2_).sum(axis=1)
-    std = np.sqrt((a1_**2).sum(axis=1) * (a2_**2).sum(axis=1)) + 1e-8
-    ic[notna] = cov / std
-    return ic

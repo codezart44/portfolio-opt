@@ -4,7 +4,7 @@ import time
 from typing import Literal
 from popt.alpha.modules.predictor import AlphaPredictor
 from popt.alpha.modules.features import FeatureView
-from popt.alpha.modules.utils import ic_score
+from popt.alpha.modules.utils import ic_score, rank_cs
 
 class AlphaSimulator:
     def __init__(self, fv: FeatureView):
@@ -52,14 +52,15 @@ class AlphaSimulator:
         self.time = time.time() - t0
         if verbose == True: print_simulator_results(self)
 
-    def get_alpha(self, universe: list[str]) -> pd.DataFrame:
+    def get_alpha(self, universe: list[str], cheat=False, rank=False) -> pd.DataFrame:
         tickers = self.fv.tickers
         timeline = self.fv.timeline
         T = timeline.shape[0]
         U = len(universe)
         i_N = np.array([universe.index(t) for t in tickers], dtype=int)
         alpha = np.full((T, U), fill_value=np.nan, dtype=float)
-        alpha[:,i_N] = self.prd
+        alpha[:,i_N] = self.prd if cheat==False else self.ref
+        alpha[:,i_N] = alpha[:,i_N] if rank==False else rank_cs(alpha[:,i_N], axis=1)
         alpha = pd.DataFrame(data=alpha, columns=universe, index=timeline)
         alpha = alpha.fillna(1.0)
         return alpha

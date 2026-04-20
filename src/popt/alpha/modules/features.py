@@ -1,12 +1,7 @@
 import numpy as np
 import pandas as pd
 from typing import Callable
-
-
-def standard_scale(x: np.ndarray, axis=1) -> np.ndarray:
-    numer = x - x.mean(axis=axis, keepdims=True)
-    denom = x.std(axis=axis, keepdims=True) + 1e-8
-    return numer / denom
+from popt.alpha.modules.utils import standard_scale
 
 # def constant(r: np.ndarray) -> np.ndarray:
 #     return np.ones(r.shape[1], dtype=int)

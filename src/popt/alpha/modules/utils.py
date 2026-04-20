@@ -3,6 +3,11 @@ import pandas as pd
 from typing import Literal, Sequence
 import os
 
+def standard_scale(x: np.ndarray, axis=1) -> np.ndarray:
+    numer = x - x.mean(axis=axis, keepdims=True)
+    denom = x.std(axis=axis, keepdims=True) + 1e-8
+    return numer / denom
+
 def tail_mask(y: np.ndarray, n_keep: int) -> np.ndarray:
     mask = np.zeros_like(y)
     T = y.shape[0]
@@ -20,8 +25,8 @@ def rank_cs(y: np.ndarray, axis: int = 1) -> np.ndarray:
     N = y.shape[axis]
     return 2.0 * order / (N - 1) - 1.0
 
-def signed_pow(y: np.ndarray, pow: int) -> np.ndarray:
-    return np.sign(y) * (np.abs(y)**pow)
+def signed_square(y: np.ndarray) -> np.ndarray:
+    return np.sign(y) * (y**2)
 
 def ic_score(
         a1: np.ndarray, 

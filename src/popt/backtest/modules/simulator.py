@@ -106,7 +106,7 @@ class BacktestSimulator:
         return self.strategy.dl.timeline
 
 def print_simulator_results(sim: BacktestSimulator) -> None:
-    print(f"Predictor Runtime: {round(sim.time*1000)} ms")
+    print(f"Backtest Runtime: {round(sim.time*1000)} ms")
     print(f"Ann Sharpe: {sim.ann_sharpe.round(4)}")
     print(f"Tot Ret:    {sim.tot_ret.round(4)}")
     print(f"Ann Ret:    {sim.ann_ret.round(4)}")

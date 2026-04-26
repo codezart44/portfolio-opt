@@ -73,19 +73,16 @@ class Markowitz(BacktestStrategy):
     def __init__(
             self,
             dl: DataLoader,
-            lookahead: int,
             gamma: float,
             lev: float,
             w_max: np.ndarray,
             vc_lim: float,
         ):
         super().__init__(dl)
-        # assert lookahead >= 0, lookahead
         assert lev >= 0.0, lev
         assert len(w_max) == dl.N, len(w_max)
         assert ((0.0 <= w_max) & (w_max <= 1.0)).all()
 
-        self.lookahead = lookahead
         self.gamma = gamma
         self.lev = lev
         self.w_max = w_max
@@ -96,20 +93,16 @@ class Markowitz(BacktestStrategy):
 
     def get_weights(self, t:int, w_prev:np.ndarray) -> np.ndarray:
         assert w_prev.shape == (self.dl.N,), w_prev.shape
-        lookahead = self.lookahead
-        t_ = t-1+lookahead
-        if t_ >= self.dl.T:
-            return w_prev
         
-        asset_mask  = self.dl.get_asset_mask(t_)
+        asset_mask  = self.dl.get_asset_mask(t-1)
         asset_mask &= self.dl.get_asset_mask(t)  # check for discontinuation
         w_max = self.w_max.copy()
         w_max[~asset_mask] = 0.0
 
         w: np.ndarray = markowitz(
-            at     = self.dl.get_alpha(t_),
-            Ft     = self.dl.get_F_cov(t_),
-            dt     = self.dl.get_d_var(t_),
+            at     = self.dl.get_alpha(t-1),
+            Ft     = self.dl.get_F_cov(t-1),
+            dt     = self.dl.get_d_var(t-1),
             w_prev = w_prev, 
             w_max  = w_max, 
             gamma  = self.gamma, 
@@ -117,34 +110,7 @@ class Markowitz(BacktestStrategy):
             vc_lim = self.vc_lim
         )
         w = self.normalize_weights(w, self.lev)
-        w[~asset_mask] = 0.0
         return w
-
-def markowitz(
-        at: np.ndarray,
-        Ft: np.ndarray,
-        dt: np.ndarray,
-        w_prev: np.ndarray,
-        w_max: np.ndarray,
-        gamma: float,
-        lev: float,
-        vc_lim: float
-    ) -> np.ndarray:
-    w = cp.Variable(at.shape[0])
-    vol = cp.norm2(cp.hstack(( Ft.T @ w, cp.multiply(dt**0.5, w) )))
-    prob = cp.Problem(
-        objective=cp.Maximize(at @ w - gamma * cp.norm1(w - w_prev)),
-        constraints=[
-            vol <= vc_lim,         # volatility control
-            0.0 <= w,              # no shorting
-            w <= w_max,            # capped positions
-            cp.sum(w) <= 1 + lev,  # leverage
-        ],
-    )
-    prob.solve(solver=cp.CLARABEL, verbose=False)
-    if w.value is None:
-        raise RuntimeError(f"Solver failed with status: {prob.status}")
-    return w.value
 
 
 class FixedWeights(BacktestStrategy):
@@ -191,17 +157,13 @@ class FixedWeights(BacktestStrategy):
 
 
 class InverseVolatility(BacktestStrategy):
-    def __init__(
-            self,
-            dl: DataLoader,
-        ):
+    def __init__(self, dl: DataLoader):
         super().__init__(dl)
 
     def get_trade_flag(self, t: int) -> bool:
         return self.dl.get_trade_flag(t)
     
     def get_weights(self, t:int, w_prev: np.ndarray) -> np.ndarray:
-        # asset masks ...
         asset_mask  = self.dl.get_asset_mask(t-1)
         asset_mask &= self.dl.get_asset_mask(t)  # check for discontinuation
         Ft = self.dl.get_F_cov(t-1)
@@ -216,14 +178,121 @@ class InverseVolatility(BacktestStrategy):
         return w
 
 
-class MinimumVolatility:
-    pass
+class MinimumVolatility(BacktestStrategy):
+    def __init__(
+            self, 
+            dl: DataLoader,
+            w_max: np.ndarray,
+            ):
+        super().__init__(dl)
+        assert w_max.shape == (dl.N,), w_max.shape
+        assert ((0.0 <= w_max) & (w_max <= 1.0)).all()
+        self.w_max = w_max
 
-class MaximumDiversification:
-    pass
+    def get_trade_flag(self, t: int) -> bool:
+        return self.dl.get_trade_flag(t)
+    
+    def get_weights(self, t:int, w_prev: np.ndarray) -> np.ndarray:
+        asset_mask  = self.dl.get_asset_mask(t-1)
+        asset_mask &= self.dl.get_asset_mask(t)  # check for discontinuation
+        mask = asset_mask.astype(float)
 
-class RiskParity:
-    pass
+        if mask.sum() == 0:
+            return np.zeros(self.dl.N)
+        
+        Ft = self.dl.get_F_cov(t-1)
+        dt = self.dl.get_d_var(t-1)
+        sigma = Ft @ Ft.T + np.diag(dt)  # covariance matrix sigma
+
+        w = cp.Variable(self.dl.N, nonneg=True)
+        prob = cp.Problem(
+            objective=cp.Minimize(cp.quad_form(w, sigma)),
+            constraints=[
+                cp.sum(w) == 1.0, 
+                w <= mask * self.w_max
+            ]
+        )
+        prob.solve(solver=cp.CLARABEL, verbose=False)
+        if w.value is None:
+            raise RuntimeError(f"Solver failed with status: {prob.status}")
+        return w.value
+
+
+class MaximumDiversification(BacktestStrategy):
+    def __init__(self, dl: DataLoader):
+        super().__init__(dl)
+
+    def get_trade_flag(self, t: int) -> bool:
+        return self.dl.get_trade_flag(t)
+    
+    def get_weights(self, t:int, w_prev: np.ndarray) -> np.ndarray:
+        asset_mask  = self.dl.get_asset_mask(t-1)
+        asset_mask &= self.dl.get_asset_mask(t)  # check for discontinuation
+        mask = asset_mask.astype(float)
+
+        if mask.sum() == 0:
+            return np.zeros(self.dl.N)
+        
+        Ft = self.dl.get_F_cov(t-1)
+        dt = self.dl.get_d_var(t-1)
+        sigma = Ft @ Ft.T + np.diag(dt)  # covariance matrix sigma
+        vol = np.diag(sigma) ** 0.5
+        
+        # QP reformulation
+        Rt = sigma / (np.outer(vol, vol) + 1e-8)
+
+        y = cp.Variable(self.dl.N, nonneg=True)
+        prob = cp.Problem(
+            objective=cp.Minimize(cp.quad_form(y, Rt)),
+            constraints=[
+                cp.sum(y) == 1.0,
+                y <= mask,
+            ]
+        )
+        prob.solve(solver=cp.CLARABEL, verbose=False)
+        if y.value is None:
+            raise RuntimeError(f"Solver failed with status: {prob.status}")
+        w = y.value / (vol + 1e-8)
+        w[~asset_mask] = 0.0
+        w /= w.sum()
+        return w
+
+
+class RiskParity(BacktestStrategy):
+    def __init__(
+            self, 
+            dl: DataLoader,
+            kappa: float,
+            ):
+        super().__init__(dl)
+        self.kappa = kappa
+
+    def get_trade_flag(self, t: int) -> bool:
+        return self.dl.get_trade_flag(t)
+    
+    def get_weights(self, t:int, w_prev: np.ndarray) -> np.ndarray:
+        asset_mask  = self.dl.get_asset_mask(t-1)
+        asset_mask &= self.dl.get_asset_mask(t)  # check for discontinuation
+
+        w = np.zeros(self.dl.N)
+        N = int(asset_mask.sum())
+        if N == 0: return w
+        
+        Ft_n = self.dl.get_F_cov(t-1)[asset_mask]
+        dt_n = self.dl.get_d_var(t-1)[asset_mask]
+        sigma_n = Ft_n @ Ft_n.T + np.diag(dt_n)  # covariance matrix sigma
+
+        w_n = cp.Variable(N, pos=True)
+        prob = cp.Problem(
+            objective=cp.Minimize(0.5 * cp.quad_form(w_n, sigma_n) - self.kappa * cp.sum(cp.log(w_n))),
+            constraints=[cp.sum(w_n) == 1.0]
+        )
+        prob.solve(solver=cp.CLARABEL, verbose=False)
+        if w_n.value is None:
+            raise RuntimeError(f"Solver failed with status: {prob.status}")
+        w[asset_mask] = w_n.value
+        return w
+
 
 
 def asset_plot(
@@ -247,3 +316,29 @@ def asset_plot(
     plt.legend()
     plt.show()
 
+
+def markowitz(
+        at: np.ndarray,
+        Ft: np.ndarray,
+        dt: np.ndarray,
+        w_prev: np.ndarray,
+        w_max: np.ndarray,
+        gamma: float,
+        lev: float,
+        vc_lim: float
+    ) -> np.ndarray:
+    w = cp.Variable(at.shape[0])
+    vol = cp.norm2(cp.hstack(( Ft.T @ w, cp.multiply(dt**0.5, w) )))
+    prob = cp.Problem(
+        objective=cp.Maximize(at @ w - gamma * cp.norm1(w - w_prev)),
+        constraints=[
+            vol <= vc_lim,         # volatility control
+            0.0 <= w,              # no shorting
+            w <= w_max,            # capped positions
+            cp.sum(w) <= 1 + lev,  # leverage
+        ],
+    )
+    prob.solve(solver=cp.CLARABEL, verbose=False)
+    if w.value is None:
+        raise RuntimeError(f"Solver failed with status: {prob.status}")
+    return w.value

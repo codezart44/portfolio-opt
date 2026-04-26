@@ -6,6 +6,7 @@ AUTO_ADJUST = True
 D0 = "2005-01-03"
 D1 = "2024-12-31"
 
+sbg  = ["SPY", "AGG", "GLD"]
 indx = ["SPY", "QQQ", "VTV", "VUG", "MDY", "IWM", "SCHD", "USMV", "QUAL"]  # market
 bond = ["AGG", "TLT", "IEF", "TIP", "LQD", "LQDH", "HYG", "MUB", "BNDX", "EMB", "IAGG", "VWOB"]  # bonds
 sect = ["XLK", "XLV", "XLF", "XLY", "XLI", "XLP", "XLE", "XLU", "XLB", "IBB", "IYR"]  # sectors

@@ -123,7 +123,7 @@ def sharpe_geom(rp: np.ndarray, rf: np.ndarray) -> float:
 
 def wealth_plot(sim: BacktestSimulator, figsize=(12,3)) -> None:
     dl = sim.strategy.dl
-    holdings = sim.pw * (sim.pv-1.0)
+    holdings = sim.pw * sim.pv  #(sim.pv-1.0)
     plt.figure(figsize=figsize)
     plt.stackplot(dl.timeline, holdings.T, labels=dl.tickers+["Cash"])
     plt.legend()

@@ -137,7 +137,7 @@ class DataLoader:
         return self._F_cov[t]  # [N, k]
     
     def get_d_var(self, t:int) -> np.ndarray:
-        return self._d_var[t]
+        return self._d_var[t]  # [N,]
 
     def get_asset_mask(self, t: int) -> np.ndarray:
         return self._asset_mask[t]

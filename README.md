@@ -36,6 +36,3 @@ source setup.sh
 ```
 
 *Oskar Edén Wallberg (& Alexander Karolin*)
-
-### NOTE
-- Temporarily removed all riskmodels except K10 from scripts/risk.py, to speed-up the setup process.

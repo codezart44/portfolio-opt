@@ -15,7 +15,7 @@ class AlphaSimulator:
         self.predictor: AlphaPredictor | None = None
         self.time = -1
 
-    def run(self, predictor: AlphaPredictor, verbose=False, permute=False):
+    def run(self, predictor: AlphaPredictor, permute=False, verbose=False):
         t0 = time.time()
         fv = self.fv
         h = fv.horizon
@@ -31,7 +31,7 @@ class AlphaSimulator:
             y_tst = fv.get_y(t+h, 1)       # [ t  +h   : t+1+h ]
 
             if permute == True:
-                index = np.argsort(np.random.rand(*y_trn.shape), axis=1)
+                index = np.argsort(np.random.rand(h, N), axis=1)
                 y_trn = np.take_along_axis(y_trn, index, axis=1)
 
             if np.isnan(x_trn).all(axis=2).any(): continue
@@ -83,5 +83,5 @@ class AlphaSimulator:
 
 def print_simulator_results(sim: AlphaSimulator) -> None:
     print(f"Backtest Runtime: {round(sim.time*1000)} ms")
-    print(f"ic sprm:    {np.nanmean(sim.ic_spearman).round(4)}")
-    print(f"ic prsn:    {np.nanmean(sim.ic_pearson).round(4)}")
+    print(f"ic sprm:    {np.nanmean(sim.ic_spearman).round(4)} ± {np.nanstd(sim.ic_spearman).round(4)}")
+    print(f"ic prsn:    {np.nanmean(sim.ic_pearson).round(4)} ± {np.nanstd(sim.ic_pearson).round(4)}")

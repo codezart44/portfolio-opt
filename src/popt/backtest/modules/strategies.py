@@ -2,7 +2,7 @@ import numpy as np
 import cvxpy as cp
 import matplotlib.pyplot as plt
 
-from .backtestdata import DataLoader, DataBuilder
+from popt.backtest.modules.backtestdata import DataLoader, DataBuilder
 from abc import ABC, abstractmethod
 from typing import Sequence
 
@@ -190,8 +190,7 @@ class FixedWeights(BacktestStrategy):
         return w
 
 
-
-class MinimumVol(BacktestStrategy):
+class InverseVolatility(BacktestStrategy):
     def __init__(
             self,
             dl: DataLoader,
@@ -201,9 +200,31 @@ class MinimumVol(BacktestStrategy):
     def get_trade_flag(self, t: int) -> bool:
         return self.dl.get_trade_flag(t)
     
-    def get_weights(self, dl: DataLoader, t:int, w_prev: np.ndarray) -> np.ndarray:
-        ...
-        return w_prev
+    def get_weights(self, t:int, w_prev: np.ndarray) -> np.ndarray:
+        # asset masks ...
+        asset_mask  = self.dl.get_asset_mask(t-1)
+        asset_mask &= self.dl.get_asset_mask(t)  # check for discontinuation
+        Ft = self.dl.get_F_cov(t-1)
+        dt = self.dl.get_d_var(t-1)
+        sigma = Ft @ Ft.T + np.diag(dt)  # covariance matrix sigma
+        vol = np.sqrt(np.diag(sigma))
+
+        w = np.zeros_like(w_prev)
+        vol_inv = 1.0 / (vol[asset_mask] + 1e-8)
+        w[asset_mask] = vol_inv / (vol_inv.sum() + 1e-8)
+
+        return w
+
+
+class MinimumVolatility:
+    pass
+
+class MaximumDiversification:
+    pass
+
+class RiskParity:
+    pass
+
 
 def asset_plot(
         dl:DataLoader,

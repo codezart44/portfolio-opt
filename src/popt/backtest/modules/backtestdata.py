@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 from typing import Literal
-from .riskmodel import RiskModel
+from popt.backtest.modules.riskmodel import RiskModel
 
 class DataBuilder:
     def __init__(

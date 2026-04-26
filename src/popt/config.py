@@ -6,25 +6,14 @@ AUTO_ADJUST = True
 D0 = "2005-01-03"
 D1 = "2024-12-31"
 
-# "IS3S.DE"
-indx = ["SPY", "QQQ", "IWM"]  # market
-bond = ["AGG", "TLT", "LQD", "TIP"]  # bonds
-metl = ["GLD", "SLV", "CPER"]  # precious metals  "DBB"
-sect = ["XLK", "XLV", "XLF", "XLY", "XLI", "XLP", "XLE", "XLU", "XLB"]  # sectors
-extr = ["IBB", "IYR"]  # extra sectors
-intn = ["EWJ", "EWG", "EWU", "EWA", "EWH", "EWS", "EWZ", "EWT", "EWY", "EWP", "EWW", "EWD", "EWL", "EWC"]  # international "EEM"
-comd = ["CORN", "SOYB", "USO", "WEAT", "CANE"]  # commodities COTN.L, "DBC", "DBA", 
-crpt = ["BTC-USD"]  # crypto
-nikhils_extra_etfs = [
-    "VTV", "VUG", "MDY", "SCHD", "USMV", "QUAL",
-    "VNQ", "XLC", "SMH", "HACK", "ICLN", "JETS", "KRE", "IYT", "FDN", "ARKK", "XBI",
-    "IEF", "SHV", "LQDH", "HYG", "MUB", "BNDX", "EMB", "IAGG", "VWOB",
-    "CMBS", "HYXU", "TLTW", "GOVT", "FALN", "EMHY", "LEMB", "ICVT", "SHYG", "GOVZ",
-    "DBC", "DBA", "UNG", "PPLT",
-    "ETH-USD",
-    "EFA", "EEM", "EWI", "MCHI", "INDA"
-]
-universe = sorted([*indx, *bond, *metl, *sect, *extr, *intn, *comd, *crpt, *nikhils_extra_etfs])
+indx = ["SPY", "QQQ", "VTV", "VUG", "MDY", "IWM", "SCHD", "USMV", "QUAL"]  # market
+bond = ["AGG", "TLT", "IEF", "TIP", "LQD", "LQDH", "HYG", "MUB", "BNDX", "EMB", "IAGG", "VWOB"]  # bonds
+sect = ["XLK", "XLV", "XLF", "XLY", "XLI", "XLP", "XLE", "XLU", "XLB", "IBB", "IYR"]  # sectors
+intn = ["EWJ", "EWG", "EWU", "EWA", "EWH", "EWS", "EWZ", "EWT", "EWY", "EWP", "EWW", "EWI", "EWD", "EWL", "EWC"]  # international "EEM"
+comd = ["GLD", "SLV", "CPER", "USO", "UGA", "CORN", "WEAT", "SOYB", "CANE"]  # commodities COTN.L, "DBC", "DBA", 
+# metl = ["GLD", "SLV", "CPER"]  # precious metals  "DBB"
+# crpt = ["BTC-USD"]  # crypto
+universe = sorted([*indx, *sect, *intn, *bond, *comd])
 
 # Time periods
 _1W   = 5
@@ -61,4 +50,3 @@ _156W = _36M = _12Q = _3Y = 756
 
 # Equities: Short term momentum (sectors and international)
 # 
-

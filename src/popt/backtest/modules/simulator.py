@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import time
 import matplotlib.pyplot as plt
-from .strategies import BacktestStrategy
+from popt.backtest.modules.strategies import BacktestStrategy
 
 class BacktestSimulator:
     def __init__(
@@ -85,7 +85,7 @@ class BacktestSimulator:
         assert self.pv is not None
         pv = self.pv
         last = pv[-1, 0]
-        return last ** (252 / pv.shape[0]) - 1.0
+        return last ** (252 / (pv.shape[0])) - 1.0
     
     @property
     def tot_ret(self) -> float:
@@ -108,10 +108,10 @@ class BacktestSimulator:
 def print_simulator_results(sim: BacktestSimulator) -> None:
     print(f"Backtest Runtime: {round(sim.time*1000)} ms")
     print(f"Ann Sharpe: {sim.ann_sharpe.round(4)}")
-    print(f"Tot Ret:    {sim.tot_ret.round(4)}")
     print(f"Ann Ret:    {sim.ann_ret.round(4)}")
     print(f"Ann Vol:    {sim.ann_vol.round(4)}")
     print(f"Max DD :    {sim.max_drawdown.round(4)}")
+    print(f"Tot Ret:    {sim.tot_ret.round(4)}")
 
 def sharpe_arit(rp: np.ndarray, rf: np.ndarray) -> float:
     return (rp - rf).mean() / rp.std(ddof=1) * np.sqrt(252)

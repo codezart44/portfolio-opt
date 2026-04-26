@@ -41,15 +41,8 @@ class RidgeRanker(AlphaPredictor):
         xw = xt * self.w_ewma[:,None,None]
         yw = yt * self.w_ewma[:,None]
 
-        yw = signed_square(yw) # NOTE
+        # yw = signed_square(yw) # NOTE
         
-        # yw *= tail_mask(yw, n_keep=3)
-
-        # wt = 1.0 + 1.0 * np.abs(yt) ** 2   # (T, N)
-        # sw = np.sqrt(wt)
-        # yw *= sw
-        # xw *= sw[:,:,None]
-
         xw = xw.reshape(TN, F)
         yw = yw.reshape(TN,)
 
@@ -63,3 +56,11 @@ class RidgeRanker(AlphaPredictor):
         assert self.theta.shape == (F,)
         pt = xt @ self.theta
         return pt
+
+
+# yw *= tail_mask(yw, n_keep=3)
+
+# wt = 1.0 + 1.0 * np.abs(yt) ** 2   # (T, N)
+# sw = np.sqrt(wt)
+# yw *= sw
+# xw *= sw[:,:,None]

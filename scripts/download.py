@@ -32,8 +32,9 @@ trading_days: pd.DatetimeIndex = ohlcv["Close"]["SPY"].dropna().index
 close: pd.DataFrame  = ohlcv["Close"].reindex(trading_days)
 volume: pd.DataFrame = ohlcv["Volume"].reindex(trading_days)
 
-close.loc[:FIRST_DATE_BTC, "BTC-USD"] = np.nan
-volume.loc[:FIRST_DATE_BTC, "BTC-USD"] = np.nan
+if "BTC-USD" in universe:
+    close.loc[:FIRST_DATE_BTC, "BTC-USD"] = np.nan
+    volume.loc[:FIRST_DATE_BTC, "BTC-USD"] = np.nan
 return_d = close.pct_change()
 
 close.to_parquet("./data/ohlcv/close.parquet")
